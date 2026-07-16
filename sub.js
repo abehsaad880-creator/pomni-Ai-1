@@ -8,11 +8,10 @@ async function sub(client) {
  
   const { config } = client;
 
- 
   await global.subBots.setConfig({
     commandsPath: config.commandsPath || './plugins',
     owners: config.owners,
-    prefix: config.prefix,
+    prefix: config.prefix, // سيأخذ الرموز المحددة في index.js وهي ['.', '/', '!']
     info: config.info,
     printQR: false
   });
@@ -32,7 +31,7 @@ async function sub(client) {
     console.log(`🔐 [SubBot ${uid}] Pairing code: ${code}`);
   });
 
-
+  // معالجة الرسائل للأوامر والتفاعل المباشر
   global.subBots.on('message', async (uid, msg) => {
     if (msg.key.id.includes("3EB0")) return;
 
@@ -43,15 +42,21 @@ async function sub(client) {
     if (!sock || !body) return;
 
     try {
-      if (body === "تست") {
-    await sock.sendMessage(msg.key.
-        remoteJid, {
-        react: { text: "✅", key: msg.key }
-       });
+      // 1. اختبار يدوي سريع لكلمة "تست" بدون نقطة
+      if (body.trim() === "تست") {
+        await sock.sendMessage(msg.key.remoteJid, {
+          react: { text: "✅", key: msg.key }
+        });
+        return; // الخروج لكي لا يحاول معالجتها كأمر آخر
+      }
+
+      // 2. تمرير الرسالة إلى نظام معالجة الأوامر الخاص بالمكتبة لتشغيل الأوامر (مثل .اوامر) تلقائياً
+      if (client.commandSystem) {
+        await client.commandSystem.execute(sock, msg);
       }
 
     } catch (error) {
-      console.error(`❌ [SubBot ${uid}] Send error:`, error?.message || error);
+      console.error(`❌ [SubBot ${uid}] Send/Execute error:`, error?.message || error);
     }
   });
 
